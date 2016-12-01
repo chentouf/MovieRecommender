@@ -13,7 +13,9 @@ import org.bson.BSONObject;
 import scala.util.parsing.json.JSONObject;
 
 
+import java.security.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -25,22 +27,16 @@ public class MongoDB {
     public DBCollection col;
 
 
+
+
     public MongoDB(){
         mongo = new MongoClient( "localhost" , 27017 );
         db = mongo.getDB("MovieLens");
     }
 
-    public Integer getNbMovies(){
-        collection= db.getCollection("movies");
-        col = db.getCollection("movies");
-        DBCursor cursor = collection.find();
-        return cursor.count();
-    }
-
     public ArrayList<Movie> getAllMoviesByUserId(Integer idUser){
-        ArrayList<Movie> list = new ArrayList<Movie>();
         collection = db.getCollection("users");
-        List<Genre> genres = new ArrayList<Genre>();
+        ArrayList<Movie> listMoviesUser = new ArrayList<Movie>();
         BasicDBObject query = new BasicDBObject();
         query.put("_id", idUser);
         DBObject object = collection.findOne(query);
@@ -53,9 +49,9 @@ public class MongoDB {
             BSONObject b = (BSONObject) lights.get(i);
             Double id = Double.parseDouble(b.get("movieid").toString());
             int idm = id.intValue();
-            list.add(getMovieById(idm));
+            listMoviesUser.add(getMovieById(idm));
         }
-        return list;
+        return listMoviesUser;
     }
 
     public Movie getMovieById(Integer id)
@@ -71,20 +67,19 @@ public class MongoDB {
 
     public ArrayList<Movie> getAllMovies(){
         List<Genre> genres = new ArrayList<Genre>();
-        ArrayList<Movie> list = new ArrayList<Movie>();
+        ArrayList<Movie> listAllMovies = new ArrayList<Movie>();
         collection = db.getCollection("movies");
-        DBCursor cursor = collection.find();
+        DBCursor cursor = collection.find().sort(new BasicDBObject("_id",1));
         while(cursor.hasNext()) {
             DBObject object = cursor.next();
-            list.add(new Movie(Integer.parseInt(object.get("_id").toString()),object.get("title").toString(),genres));
+            listAllMovies.add(new Movie(Integer.parseInt(object.get("_id").toString()),object.get("title").toString(),genres));
         }
-        return list;
+        return listAllMovies;
     }
 
     public ArrayList<Rating> getRatedMoviesByUserId(Integer idUser){
         ArrayList<Rating> list = new ArrayList<Rating>();
         collection = db.getCollection("users");
-        List<Genre> genres = new ArrayList<Genre>();
         BasicDBObject query = new BasicDBObject();
         query.put("_id", idUser);
         DBObject object = collection.findOne(query);
@@ -103,5 +98,65 @@ public class MongoDB {
             list.add(new Rating(m, idUser, notem));
         }
         return list;
+    }
+
+    public ArrayList<Movie> getNotRatedMoviesByUserId(Integer userId)
+    {
+        ArrayList<Movie> listNotRatedlMovies = new ArrayList<Movie>();
+        ArrayList<Movie> allMovies = getAllMovies();
+        ArrayList<Movie> listMoviesUser = getAllMoviesByUserId(userId);
+        List<Integer> l = new ArrayList<Integer>();
+        List<Integer> l2 = new ArrayList<Integer>();
+        for (Movie i : allMovies)
+        {
+            l.add((int) i.getId());
+        }
+        for (Movie i : listMoviesUser)
+        {
+            l2.add((int) i.getId());
+        }
+        l.removeAll(l2);
+        for (int i : l)
+        {
+            listNotRatedlMovies.add(getMovieById(i));
+        }
+        return listNotRatedlMovies;
+    }
+
+    public void createRating(int userId, int movieId, int score)
+    {
+        collection = db.getCollection("users");
+        BasicDBObject query = new BasicDBObject();
+        query.put("_id", userId);
+        BasicDBObject movies = new BasicDBObject();
+        BasicDBObject set = new BasicDBObject("$addToSet", new BasicDBObject("movies",movies));
+
+        movies.put("movieid", movieId);
+        movies.put("rating", score);
+        movies.put("date",Math.round(new Date().getTime()/1000));
+        collection.update(query,set);
+
+        getRatedMoviesByUserId(userId);
+
+    }
+
+    public void saveOrUpdateRating(int userId, int movieId, int score)
+    {
+        collection = db.getCollection("users");
+        BasicDBObject query = new BasicDBObject();
+        query.put("_id", userId);
+        BasicDBObject movies = new BasicDBObject();
+        BasicDBObject pull = new BasicDBObject("$pull", new BasicDBObject("movies",movies));
+        movies.put("movieid", movieId);
+        collection.update(query,pull);
+
+        BasicDBObject set = new BasicDBObject("$addToSet", new BasicDBObject("movies",movies));
+
+        movies.put("movieid", movieId);
+        movies.put("rating", score);
+        movies.put("date",Math.round(new Date().getTime()/1000));
+        collection.update(query,set);
+
+        getRatedMoviesByUserId(userId);
     }
 }

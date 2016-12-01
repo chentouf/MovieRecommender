@@ -63,7 +63,15 @@
                     <tr>
                         <td>${rating.getMovie().id}</td>
                         <td>${rating.getMovie().title}</td>
-                        <td>${rating.score}</td>
+                        <td><span class="badge">${rating.score}</span><br/>
+                            <c:forEach var="i" begin="1" end="5">
+                                <c:if test="${i==rating.score}">
+                                    <a href="/saveOrUpdateRatingMongoDB/${userId}/${rating.getMovie().id}/${i}"><button class="btn btn-success disabled">${i}</button></a>
+                                </c:if>
+                                <c:if test="${i != rating.score}">
+                                    <a href="/saveOrUpdateRatingMongoDB/${userId}/${rating.getMovie().id}/${i}"><button class="btn btn-default">${i}</button></a>
+                                </c:if>
+                            </c:forEach></td>
                     </tr>
                 </c:forEach>
                 </tbody>
@@ -71,22 +79,26 @@
         </div>
         <div class="col-md-6 scrollit">
             <centre><h1>
-                Ajouter une note
+                c
             </h1></centre>
             <table id="AlleMoviesMongoDB" class="table table-striped table-bordered " cellspacing="0" width="100%">
                 <thead>
                 <tr>
-                    <th>${allMoviesSize}</th>
+                    <th>${otherMoviesSize}</th>
                     <th>Titre de filme</th>
-                    <th>Add Note</th>
+                    <th>Ajouter une note</th>
                 </tr>
                 </thead>
                 <tbody>
-                <c:forEach items="${allMovies}" var="movie">
+                <c:forEach items="${otherMovies}" var="movie">
                     <tr>
                         <td>${movie.id}</td>
                         <td>${movie.title}</td>
-                        <td></td>
+                        <td>
+                            <c:forEach var="i" begin="1" end="5">
+                                <a href="/createRatingMongoDB/${userId}/${movie.id}/${i}"><button class="btn btn-default">${i}</button></a>
+                            </c:forEach>
+                        </td>
                     </tr>
                 </c:forEach>
 

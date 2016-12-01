@@ -4,6 +4,8 @@ package com.camillepradel.movierecommender.model;
  * Created by a.chentouf on 30/11/2016.
  */
 
+import com.camillepradel.movierecommender.DBConnections.Neo4j;
+
 import java.util.Arrays;
 
 public class Rating {
@@ -11,6 +13,7 @@ public class Rating {
     private Movie movie;
     private int userId;
     private int score;
+    private Neo4j ConnexionNeo4j;
 
     public Rating() {
         this.movie = null;
@@ -46,7 +49,9 @@ public class Rating {
     }
 
     public void setMovieId(int movieId) {
+
         // TODO: get movie with id movieId from database
+        //On a gerer ca dans les fonctions Neo4j.saveOrUpdateRating Neo4j.createRating.
         String title = "Titre";
         Genre genre0 = new Genre(0, "genre0");
         Genre genre1 = new Genre(1, "genre1");

@@ -9,10 +9,7 @@ import com.camillepradel.movierecommender.DBConnections.MongoDB;
 import com.camillepradel.movierecommender.DBConnections.Neo4j;
 import com.camillepradel.movierecommender.model.Rating;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.camillepradel.movierecommender.model.Genre;
@@ -50,9 +47,6 @@ public class MainController {
 			moviesNeo4j = neo4j.getAllMoviesByUserId(userId);
 			System.out.println("show Movies of user " + userId);
 		}
-		// TODO: write query to retrieve all movies from DB or all movies rated by user with id userId,
-		// depending on whether or not a value was given for userId
-
 
 		ModelAndView mv = new ModelAndView("moviesNeo4j");
 		mv.addObject("userId", userId);
@@ -91,20 +85,20 @@ public class MainController {
 		System.out.println("GET /movieratings for user " + userId);
 
 		List<Rating> moviesRatingsNeo4j= new LinkedList<Rating>();
-		List<Movie> allMovies = new LinkedList<Movie>();
+		List<Movie> notRatedMovies = new LinkedList<Movie>();
 		neo4j = new Neo4j();
 		if(userId != null){
-			allMovies = neo4j.getAllMovies();
+			notRatedMovies = neo4j.getNotRatedMoviesByUserId(userId);
 			moviesRatingsNeo4j = neo4j.getAllMoviesWithRatings(userId);
 			System.out.println("show the movies rated by : " + userId);
 		}
 
 		ModelAndView mv = new ModelAndView("moviesRatingsNeo4j");
 		mv.addObject("userId", userId);
-		mv.addObject("allMovies",allMovies);
+		mv.addObject("otherMovies",notRatedMovies);
 		mv.addObject("moviesRatingsNeo4j", moviesRatingsNeo4j);
 		mv.addObject("moviesRatingsNeo4JSize", moviesRatingsNeo4j.size());
-		mv.addObject("allMoviesSize",allMovies.size());
+		mv.addObject("otherMoviesSize",notRatedMovies.size());
 		neo4j.close();
 		return mv;
 	}
@@ -114,34 +108,69 @@ public class MainController {
 			@RequestParam(value = "user_id", required = true) Integer userId) {
 		System.out.println("GET /movieratings for user " + userId);
 
-		List<Movie> allMoviesMongoDB= new LinkedList<Movie>();
+		List<Movie> notRatedMoviesMongoDB= new LinkedList<Movie>();
 		List<Rating> moviesRatingsMongoDB= new LinkedList<Rating>();
 		mongodb = new MongoDB();
 		if(userId != null){
-			allMoviesMongoDB = mongodb.getAllMovies();
+			notRatedMoviesMongoDB = mongodb.getNotRatedMoviesByUserId(userId);
 			moviesRatingsMongoDB = mongodb.getRatedMoviesByUserId(userId);
 			System.out.println("show the movies rated by : " + userId);
 		}
 
 		ModelAndView mv = new ModelAndView("moviesRatingsMongoDB");
 		mv.addObject("userId", userId);
-		mv.addObject("allMovies",allMoviesMongoDB);
+		mv.addObject("otherMovies",notRatedMoviesMongoDB);
 		mv.addObject("moviesRatingsMongoDB", moviesRatingsMongoDB);
 		mv.addObject("moviesRatingsMongoDBJSize", moviesRatingsMongoDB.size());
-		mv.addObject("allMoviesSize",allMoviesMongoDB.size());
+		mv.addObject("otherMoviesSize",notRatedMoviesMongoDB.size());
 		return mv;
 	}
 
-	@RequestMapping(value = "/movieratings", method = RequestMethod.POST)
-		public String saveOrUpdateRating(@ModelAttribute("rating") Rating rating) {
-			System.out.println("POST /movieratings for user " + rating.getUserId()
-												+ ", movie " + rating.getMovie().getId()
-												+ ", score " + rating.getScore());
+	//update it if it does exist
+	@RequestMapping(value = "/saveOrUpdateRatingNeo4j/{userId}/{movieId}/{score}", method = RequestMethod.GET)
+	public String saveOrUpdateRatingNeo4j(@PathVariable("userId") int userId, @PathVariable("movieId")
+									 int movieId,@PathVariable("score") int score) {
 
-			// TODO: add query which
-			//         - add rating between specified user and movie if it doesn't exist
-			//         - update it if it does exist
-
-			return "redirect:/movieratings?user_id=" + rating.getUserId();
+			neo4j = new Neo4j();
+			//update it if it does exist
+			neo4j.saveOrUpdateRating(userId,movieId,score);
+			neo4j.close();
+			return "redirect:/moviesRatingsNeo4j?user_id="+userId;
 	}
+
+	//add rating between specified user and movie if it doesn't exist
+	@RequestMapping(value = "/createRatingNeo4j/{userId}/{movieId}/{score}", method = RequestMethod.GET)
+	public String createRatingNeo4j(@PathVariable("userId") int userId, @PathVariable("movieId")
+			int movieId,@PathVariable("score") int score) {
+
+		//add rating between specified user and movie if it doesn't exist
+		neo4j = new Neo4j();
+		neo4j.createRating(userId,movieId,score);
+		neo4j.close();
+		return "redirect:/moviesRatingsNeo4j?user_id="+userId;
+	}
+
+	//update it if it does exist
+	@RequestMapping(value = "/saveOrUpdateRatingMongoDB/{userId}/{movieId}/{score}", method = RequestMethod.GET)
+	public String saveOrUpdateRatingMongoDB(@PathVariable("userId") int userId, @PathVariable("movieId")
+			int movieId,@PathVariable("score") int score) {
+
+		System.out.println("on est la contr");
+		mongodb = new MongoDB();
+		//update it if it does exist
+		mongodb.saveOrUpdateRating(userId,movieId,score);
+		return "redirect:/moviesRatingsMongoDB?user_id="+userId;
+	}
+
+	//add rating between specified user and movie if it doesn't exist
+	@RequestMapping(value = "/createRatingMongoDB/{userId}/{movieId}/{score}", method = RequestMethod.GET)
+	public String createRatingMongoDB(@PathVariable("userId") int userId, @PathVariable("movieId")
+			int movieId,@PathVariable("score") int score) {
+
+		//add rating between specified user and movie if it doesn't exist
+		mongodb = new MongoDB();
+		mongodb.createRating(userId,movieId,score);
+		return "redirect:/moviesRatingsMongoDB?user_id="+userId;
+	}
+
 }

@@ -41,12 +41,12 @@
             Tous les films
         </c:when>
         <c:otherwise>
-            Films de l'utilisateur ${userId}
+            Films de l'utilisateur : ${userId}
         </c:otherwise>
     </c:choose>
 </h1></center>
 <div class="col-md-12 container">
-    <div class="col-md-6 scrollit">
+    <div class="col-md-12 scrollit">
         <table id="mongodb" class="table table-striped table-bordered " cellspacing="0" width="100%">
             <thead>
             <tr>
